@@ -1,0 +1,55 @@
+name: Build PS2 ELF
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential make cmake git wget texinfo bison flex \
+            patch libgmp-dev libmpfr-dev libmpc-dev gettext libelf-dev zlib1g-dev
+
+      - name: Setup ps2dev toolchain
+        run: |
+          git clone --depth 1 https://github.com/ps2dev/ps2dev.git /tmp/ps2dev-src
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export PATH=$PATH:$PS2DEV/bin
+          sudo mkdir -p $PS2DEV
+          sudo chmod 777 $PS2DEV
+          cd /tmp/ps2dev-src
+          ./build-all.sh
+
+      - name: Setup gsKit
+        run: |
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export PATH=$PATH:$PS2DEV/bin
+          git clone --depth 1 https://github.com/ps2dev/gsKit.git /tmp/gsKit
+          cd /tmp/gsKit
+          make install PREFIX=$PS2DEV
+
+      - name: Build ELF
+        run: |
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export PATH=$PATH:$PS2DEV/bin
+          make
+
+      - name: Upload ELF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokyo_xmb_elf
+          path: "*.elf"
+          if-no-files-found: warn
