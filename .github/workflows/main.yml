@@ -1,0 +1,25 @@
+name: Build PS2 ELF
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ps2dev/ps2dev:latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build ELF
+        run: |
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export GSKIT=$PS2DEV/gsKit
+          export PATH=$PATH:$PS2DEV/bin
+          make
+
+      - name: Upload ELF
+        uses: actions/upload-artifact@v3
+        with:
+          name: tokyo_xmb_elf
+          path: tokyo_xmb.elf
